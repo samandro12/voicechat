@@ -1,0 +1,5 @@
+to run this server 
+    python -m flask run -h 0.0.0.0 -p 5000
+
+
+Make Sure the selected speech region supports avatar otherwise app will not work

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" class=""> <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure AI Chat Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+    <style>
+        /* Webkit (Chrome, Safari, newer Edge) scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #2d3748; /* dark:bg-gray-700 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+        /* Firefox scrollbar styling */
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f1f1f1;
+        }
+        html.dark {
+            scrollbar-color: #555 #2d3748;
+        }
+        /* Ensure full height for chat layout */
+        body, html {
+            height: 100%;
+            overflow: hidden; /* Prevent body scroll, manage scrolling within chatbox */
+        }
+        #chatContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Full viewport height */
+        }
+        /* Lucide icons for theme toggle */
+        .lucide {
+            width: 1em;
+            height: 1em;
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+    <script>
+        // Tailwind dark mode configuration
+        tailwind.config = {
+            darkMode: 'class', // or 'media'
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }; // Added semicolon for stricter JS syntax
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans antialiased">
+
+    <div id="chatContainer" class="w-full max-w-4xl mx-auto flex flex-col h-screen p-2 md:p-4">
+        <header class="mb-2 md:mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-semibold text-blue-600 dark:text-blue-400">AI Chat Assistant</h1>
+            <div class="flex items-center space-x-2">
+                <button id="clearChatButton" title="Clear Chat" class="p-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                </button>
+                <button id="themeToggleButton" title="Toggle Theme" class="p-2 text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    </button>
+            </div>
+        </header>
+
+        <div id="statusMessage" class="text-sm p-2 my-2 rounded-md text-center">
+            </div>
+        
+        <div id="chatBox" class="flex-grow bg-white dark:bg-gray-800 p-3 md:p-4 rounded-lg shadow-inner overflow-y-auto mb-2 md:mb-4 flex flex-col space-y-2">
+            </div>
+
+        <footer class="p-1 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <div class="flex items-center space-x-2">
+                <input type="text" id="chatInput" placeholder="Type your message..." class="flex-grow p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none dark:bg-gray-700 dark:text-gray-200 transition-shadow">
+                <button id="sendButton" title="Send Message" class="p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+                <button id="recordButton" title="Record Speech" class="p-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50" disabled>
+                    🎤 Record
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Pass backend config to frontend
+        // These are used by chat.js to initialize services or control features.
+        // The actual SPEECH_KEY is fetched via /sts_token endpoint by chat.js for security.
+        window.AZURE_SPEECH_REGION_BROWSER = "{{ azure_speech_region | default('') }}";
+        window.SHOULD_STREAM_AUDIO_FROM_CHAT_COMPLETION_BROWSER = {{ should_stream_audio | default(false) | tojson }};
+        
+    </script>
+    
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+
+</body>
+</html>
